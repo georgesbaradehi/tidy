@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-window: #f5f5f7;
+  --sidebar: #f0f0f2;
+  --group: #ffffff;
+  --label: #1d1d1f;
+  --secondary: #6e6e73;
+  --tertiary: #aeaeb2;
+  --separator: rgba(0,0,0,.09);
+  --fill: rgba(120,120,128,.12);
+  --fill-hover: rgba(120,120,128,.18);
+  --accent: #007aff;
+  --accent-text: #ffffff;
+  --selection: #007aff;
+  --selection-soft: rgba(0,122,255,.12);
+  --green: #34c759;
+  --orange: #ff9500;
+  --red: #ff3b30;
+  --shadow: 0 10px 40px rgba(0,0,0,.18), 0 0 0 .5px rgba(0,0,0,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1e;
+    --bg-window: #1c1c1e;
+    --sidebar: #262628;
+    --group: #2c2c2e;
+    --label: #f5f5f7;
+    --secondary: #98989d;
+    --tertiary: #636366;
+    --separator: rgba(255,255,255,.1);
+    --fill: rgba(120,120,128,.24);
+    --fill-hover: rgba(120,120,128,.32);
+    --accent: #0a84ff;
+    --selection: #0a84ff;
+    --selection-soft: rgba(10,132,255,.22);
+    --green: #30d158;
+    --orange: #ff9f0a;
+    --red: #ff453a;
+    --shadow: 0 10px 40px rgba(0,0,0,.5), 0 0 0 .5px rgba(255,255,255,.15);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font: 13px/1.38 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  color: var(--label); background: var(--bg-window);
+  -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none;
+  overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+svg { display: block; flex: none; }
+.screen { display: none; height: 100%; }
+.screen.on { display: flex; }
+.muted { color: var(--secondary); }
+
+/* ---------- buttons ---------- */
+.btn {
+  height: 28px; padding: 0 14px; border-radius: 7px; border: 0; cursor: default;
+  background: var(--fill); font-weight: 500; white-space: nowrap;
+}
+.btn:hover { background: var(--fill-hover); }
+.btn.primary { background: var(--accent); color: var(--accent-text); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.large { height: 36px; padding: 0 22px; border-radius: 9px; font-size: 14px; }
+.btn:disabled { opacity: .45; }
+.link { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; }
+.icon-btn { width: 30px; height: 28px; border: 0; background: none; border-radius: 7px; display: grid; place-items: center; color: var(--secondary); }
+.icon-btn:hover { background: var(--fill); }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 1px; }
+
+/* ---------- centered screens ---------- */
+.center { flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; overflow-y: auto; }
+.center.top { justify-content: flex-start; padding-top: 56px; }
+.app-icon { width: 76px; height: 76px; margin-bottom: 18px; }
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+h2 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.lead { font-size: 14px; color: var(--secondary); max-width: 440px; margin-top: 6px; }
+
+/* grouped inset form (System Settings style) */
+.form { width: 100%; max-width: 460px; margin-top: 28px; text-align: left; }
+.form-title { font-size: 12px; font-weight: 600; color: var(--secondary); margin: 18px 10px 6px; }
+.group { background: var(--group); border-radius: 10px; box-shadow: 0 0 0 .5px var(--separator); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 7px 12px; }
+.row + .row { border-top: .5px solid var(--separator); }
+.row .grow { flex: 1; min-width: 0; }
+.row small { display: block; color: var(--secondary); font-size: 11px; }
+.footnote { font-size: 11px; color: var(--secondary); margin: 8px 10px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; background: var(--fill); border: 0; }
+.chip[aria-pressed="true"] { background: var(--selection-soft); color: var(--accent); }
+.chip svg { width: 12px; height: 12px; }
+
+/* switch */
+.switch { position: relative; width: 32px; height: 19px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; }
+.switch span { position: absolute; inset: 0; border-radius: 10px; background: var(--fill-hover); transition: background .2s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .2s; }
+.switch input:checked + span { background: var(--green); }
+.switch input:checked + span::after { transform: translateX(13px); }
+
+.actions { display: flex; gap: 10px; justify-content: center; margin-top: 28px; }
+.corner { position: fixed; top: 12px; right: 14px; }
+
+/* progress */
+.progress { width: 320px; height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; margin: 22px 0 10px; }
+.progress div { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+.progress.indeterminate div { width: 30%; animation: slide 1.3s ease-in-out infinite; }
+@keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--fill); border-top-color: var(--accent); animation: spin .9s linear infinite; margin-bottom: 18px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.list-box { width: 100%; max-width: 460px; text-align: left; margin-top: 20px; }
+.list-box .row { font-size: 12px; }
+.badge-circle { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 16px; }
+
+/* ---------- review ---------- */
+#review { flex-direction: column; }
+.toolbar { height: 52px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 16px; border-bottom: .5px solid var(--separator); background: var(--bg-window); }
+.toolbar .title { flex: 1; min-width: 0; }
+.toolbar .title b { font-size: 13px; font-weight: 600; display: block; }
+.toolbar .title span { font-size: 11px; color: var(--secondary); }
+.search { position: relative; width: 210px; }
+.search input { width: 100%; height: 28px; border-radius: 7px; border: 0; background: var(--fill); padding: 0 8px 0 28px; outline: none; }
+.search input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+.search svg { position: absolute; left: 8px; top: 7px; color: var(--secondary); }
+.split { flex: 1; display: flex; min-height: 0; }
+
+.sidebar { width: 230px; flex: none; background: var(--sidebar); border-right: .5px solid var(--separator); overflow-y: auto; padding: 8px; }
+.side-head { font-size: 11px; font-weight: 600; color: var(--secondary); padding: 12px 8px 4px; }
+.side-item { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border-radius: 6px; cursor: default; white-space: nowrap; }
+.side-item:hover { background: var(--fill); }
+.side-item.sel { background: var(--selection-soft); }
+.side-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.side-item .count { font-size: 11px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.side-item .chev { width: 14px; height: 14px; color: var(--tertiary); transition: transform .15s; }
+.side-item .chev.open { transform: rotate(90deg); }
+.side-item .chev.none { visibility: hidden; }
+.side-item .ico { color: var(--accent); }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
+.crumbs { height: 36px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 16px; font-size: 12px; color: var(--secondary); border-bottom: .5px solid var(--separator); }
+.crumbs button { background: none; border: 0; color: var(--secondary); padding: 2px 4px; border-radius: 4px; }
+.crumbs button:hover { background: var(--fill); color: var(--label); }
+.crumbs button:last-child { color: var(--label); font-weight: 600; }
+.items { flex: 1; overflow-y: auto; padding: 4px 8px 16px; }
+.item { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 10px; border-radius: 7px; cursor: default; }
+.item:nth-child(even) { background: color-mix(in srgb, var(--fill) 35%, transparent); }
+.item:hover { background: var(--fill); }
+.item.sel { background: var(--selection); color: #fff; }
+.item.sel .sub, .item.sel .tag { color: rgba(255,255,255,.85); }
+.item.off { opacity: .45; }
+.item .ico { width: 28px; height: 28px; display: grid; place-items: center; }
+.item .text { flex: 1; min-width: 0; }
+.item .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .sub { font-size: 11px; color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--secondary); white-space: nowrap; }
+.empty { padding: 60px 20px; text-align: center; color: var(--secondary); }
+.more { display: block; margin: 10px auto; }
+
+.inspector { width: 270px; flex: none; border-left: .5px solid var(--separator); background: var(--bg-window); overflow-y: auto; padding: 16px; }
+.inspector .placeholder { color: var(--secondary); text-align: center; margin-top: 80px; padding: 0 16px; }
+.preview-ico { width: 64px; height: 64px; margin: 4px auto 10px; display: grid; place-items: center; }
+.ins-title { text-align: center; font-weight: 600; word-break: break-word; }
+.ins-sub { text-align: center; color: var(--secondary); font-size: 11px; margin-top: 2px; }
+.field { margin-top: 16px; }
+.field label { display: block; font-size: 11px; font-weight: 600; color: var(--secondary); margin-bottom: 5px; }
+.field input[type=text], .field select, .sheet input {
+  width: 100%; height: 28px; border-radius: 6px; border: 0; background: var(--group); padding: 0 8px;
+  box-shadow: 0 0 0 .5px var(--separator), 0 .5px 1px rgba(0,0,0,.06); outline: none; -webkit-user-select: text; user-select: text;
+}
+.field input:focus, .field select:focus, .sheet input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+.field .path { font-size: 11px; color: var(--secondary); word-break: break-all; -webkit-user-select: text; user-select: text; }
+.callout { margin-top: 16px; padding: 10px 12px; border-radius: 8px; background: var(--selection-soft); font-size: 11.5px; display: flex; gap: 8px; }
+.callout.warn { background: color-mix(in srgb, var(--orange) 16%, transparent); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+
+/* ---------- sheet (modal) ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.25); display: none; align-items: flex-start; justify-content: center; z-index: 10; }
+.scrim.on { display: flex; }
+.sheet { width: 400px; margin-top: 60px; background: var(--bg-window); border-radius: 12px; box-shadow: var(--shadow); padding: 22px; animation: drop .22s ease-out; }
+@keyframes drop { from { transform: translateY(-14px); opacity: 0; } }
+.sheet h2 { font-size: 15px; }
+.sheet p { color: var(--secondary); margin: 6px 0 14px; font-size: 12px; }
+.sheet .actions { justify-content: flex-end; margin-top: 18px; }
+.sheet ul { margin: 0 0 0 16px; color: var(--secondary); font-size: 12px; max-height: 240px; overflow-y: auto; -webkit-user-select: text; user-select: text; }
+.sheet li { margin: 3px 0; }
+
+@media (max-width: 900px) { .inspector { width: 230px; } .sidebar { width: 200px; } .search { width: 150px; } }
+</style>
+</head>
+<body>
+
+<!-- ======================= Welcome ======================= -->
+<section class="screen center top" id="welcome">
+  <button class="icon-btn corner" id="open-settings" aria-label="Settings" title="Settings">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+  <svg class="app-icon" viewBox="0 0 80 80" aria-hidden="true">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ac8fa"/><stop offset="1" stop-color="#007aff"/></linearGradient></defs>
+    <rect width="80" height="80" rx="18" fill="url(#g)"/>
+    <path d="M18 28a4 4 0 0 1 4-4h11l5 5h20a4 4 0 0 1 4 4v19a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4z" fill="#fff" opacity=".95"/>
+    <path d="M30 42l6 6 14-14" fill="none" stroke="#007aff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <h1>Tidy</h1>
+  <p class="lead">Organize every file on your Mac. Claude suggests a structure and you review every change before anything moves.</p>
+
+  <div class="form">
+    <div class="form-title">Folders to organize</div>
+    <div class="group"><div class="chips" id="roots"></div></div>
+    <p class="footnote">Your Library, apps and system files are never touched.</p>
+
+    <div class="form-title">Options</div>
+    <div class="group">
+      <div class="row">
+        <div class="grow">Read file contents<small>Gives better names. Short excerpts are sent to Anthropic.</small></div>
+        <label class="switch"><input type="checkbox" id="opt-content" checked><span></span></label>
+      </div>
+      <div class="row">
+        <div class="grow">Rename photos, music and video<small>Otherwise they're moved but keep their names.</small></div>
+        <label class="switch"><input type="checkbox" id="opt-media" checked><span></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="undo-last" hidden>Undo Last Organize</button>
+    <button class="btn primary large" id="scan">Scan My Mac</button>
+  </div>
+</section>
+
+<!-- ======================= Working ======================= -->
+<section class="screen center" id="working">
+  <div class="spinner"></div>
+  <h2 id="work-step">Getting ready</h2>
+  <div class="progress" id="work-bar"><div></div></div>
+  <p class="muted" id="work-detail">&nbsp;</p>
+  <p class="footnote" style="margin-top:6px">Nothing on your Mac is changed yet.</p>
+  <div class="actions"><button class="btn" id="cancel">Cancel</button></div>
+</section>
+
+<!-- ======================= Review ======================= -->
+<section class="screen" id="review">
+  <div class="toolbar">
+    <div class="title"><b>Review Changes</b><span id="summary"></span></div>
+    <label class="search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="search" type="search" placeholder="Search" aria-label="Search changes">
+    </label>
+    <button class="btn" id="start-over">Start Over</button>
+    <button class="btn primary" id="organize">Organize</button>
+  </div>
+  <div class="split">
+    <nav class="sidebar" id="sidebar" aria-label="Folders"></nav>
+    <div class="main">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="items" id="items" role="listbox" tabindex="0" aria-label="Changes"></div>
+    </div>
+    <aside class="inspector" id="inspector"></aside>
+  </div>
+</section>
+
+<!-- ======================= Done ======================= -->
+<section class="screen center" id="done">
+  <div class="badge-circle" style="background:color-mix(in srgb,var(--green) 18%,transparent)">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+  </div>
+  <h1 id="done-title">Your Mac is organized</h1>
+  <p class="lead" id="done-sub"></p>
+  <div class="list-box" id="done-notes"></div>
+  <div class="actions">
+    <button class="btn" id="undo">Undo</button>
+    <button class="btn" id="finder">Show in Finder</button>
+    <button class="btn primary" id="finish">Done</button>
+  </div>
+</section>
+
+<!-- ======================= Sheets ======================= -->
+<div class="scrim" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="set-title">
+  <form class="sheet" id="key-form">
+    <h2 id="set-title">Anthropic API Key</h2>
+    <p>Tidy uses Claude to understand your files. Your key is stored in your Mac's Keychain.</p>
+    <input type="password" id="key" placeholder="sk-ant-…" autocomplete="off" aria-label="API key">
+    <div class="actions">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="scrim" id="sheet-alert" role="alertdialog" aria-modal="true" aria-labelledby="alert-title">
+  <div class="sheet">
+    <h2 id="alert-title"></h2>
+    <p id="alert-text"></p>
+    <ul id="alert-list"></ul>
+    <div class="actions" id="alert-actions"></div>
+  </div>
+</div>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = (s) => document.querySelector(s);
+const api = async (path, body) => {
+  const r = await fetch(path, body === undefined
+    ? { headers: { "X-Tidy-Token": TOKEN } }
+    : { method: "POST", headers: { "X-Tidy-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+  return r.json();
+};
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => n.toLocaleString();
+const files = (n) => `${fmt(n)} ${n === 1 ? "file" : "files"}`;
+
+/* ---------- icons ---------- */
+const I = {
+  folder: (c = "var(--accent)") => `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4.2l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="${c}" opacity=".9"/></svg>`,
+  smallFolder: `<svg width="15" height="15" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4.2l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor"/></svg>`,
+  desktop: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>`,
+  file: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M6 2.5h8l5 5V20a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 20V4a1.5 1.5 0 0 1 1-1.5z" fill="var(--group)" stroke="var(--tertiary)"/><path d="M14 2.5V7a.5.5 0 0 0 .5.5H19" fill="none" stroke="var(--tertiary)"/></svg>`,
+  lock: `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10V8a5 5 0 0 1 10 0v2h.5A1.5 1.5 0 0 1 19 11.5v8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5v-8A1.5 1.5 0 0 1 6.5 10zm2 0h6V8a3 3 0 0 0-6 0z"/></svg>`,
+  chev: `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m9 6 6 6-6 6"/></svg>`,
+  info: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent);margin-top:1px"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>`,
+  warn: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:var(--orange);margin-top:1px"><path d="M12 2 1 21h22zm1 15h-2v-2h2zm0-4h-2V9h2z"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>`,
+};
+const KIND_COLOR = { Website: "#ff9500", Project: "#af52de", Bundle: "#8e8e93", "App library": "#ff2d55", Collection: "var(--accent)", "Linked files": "#30b0c7", Data: "#5856d6" };
+const itemIcon = (it) => it.locked ? I.folder(KIND_COLOR[it.kind] || "var(--accent)") : I.file;
+const kindLabel = (it) => it.kind === "Collection" ? "Kept together" : it.kind;
+
+/* ---------- state ---------- */
+let setup = null, plan = null, edits = {}, current = "Desktop", selected = null, query = "", openFolders = new Set(["Documents", "Pictures", "Movies", "Music"]), limit = 300;
+const view = (it) => {
+  const e = edits[it.id] || {};
+  return { ...it, name: e.name ?? it.name, folder: e.folder ?? it.folder, include: e.include ?? true };
+};
+const edit = (id, patch) => { edits[id] = { ...(edits[id] || {}), ...patch }; render(); };
+
+function show(id) { document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === id)); }
+
+/* ---------- welcome ---------- */
+async function loadSetup() {
+  setup = await api("/api/setup");
+  const roots = $("#roots");
+  roots.innerHTML = setup.roots.map((r) =>
+    `<button class="chip" aria-pressed="${r.default}" data-root="${esc(r.name)}">${I.check}${esc(r.name)}</button>`).join("");
+  roots.querySelectorAll(".chip").forEach((c) => c.onclick = () => {
+    c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") !== "true");
+    c.querySelector("svg").style.visibility = c.getAttribute("aria-pressed") === "true" ? "visible" : "hidden";
+  });
+  $("#undo-last").hidden = !setup.can_undo;
+}
+
+$("#scan").onclick = async () => {
+  if (!setup.has_key) return openSheet("#sheet-settings");
+  const roots = [...document.querySelectorAll(".chip[aria-pressed=true]")].map((c) => c.dataset.root);
+  if (!roots.length) return alertSheet("Choose at least one folder", "Select the folders you want Tidy to organize.");
+  await api("/api/scan", { roots, read_content: $("#opt-content").checked, rename_media: $("#opt-media").checked });
+  poll();
+};
+$("#open-settings").onclick = () => openSheet("#sheet-settings");
+$("#undo-last").onclick = () => confirmUndo();
+$("#cancel").onclick = () => api("/api/cancel", {});
+
+/* ---------- sheets ---------- */
+function openSheet(sel) { $(sel).classList.add("on"); const f = $(sel).querySelector("input"); f && setTimeout(() => f.focus(), 50); }
+function closeSheets() { document.querySelectorAll(".scrim").forEach((s) => s.classList.remove("on")); }
+document.querySelectorAll("[data-close]").forEach((b) => b.onclick = closeSheets);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheets(); });
+$("#key-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const key = $("#key").value.trim();
+  if (!key) return;
+  await api("/api/key", { key });
+  setup.has_key = true; $("#key").value = ""; closeSheets();
+};
+function alertSheet(title, text, list = [], buttons = [{ label: "OK", primary: true }]) {
+  $("#alert-title").textContent = title;
+  $("#alert-text").textContent = text;
+  $("#alert-list").innerHTML = list.map((l) => `<li>${esc(l)}</li>`).join("");
+  $("#alert-actions").innerHTML = "";
+  buttons.forEach((b) => {
+    const el = document.createElement("button");
+    el.className = "btn" + (b.primary ? " primary" : "");
+    el.textContent = b.label;
+    el.onclick = () => { closeSheets(); b.action && b.action(); };
+    $("#alert-actions").appendChild(el);
+  });
+  openSheet("#sheet-alert");
+}
+
+/* ---------- polling ---------- */
+let pollTimer;
+async function poll() {
+  clearTimeout(pollTimer);
+  const s = await api("/api/state");
+  if (s.phase === "working" || s.phase === "applying") {
+    show("working");
+    $("#work-step").textContent = s.step || "Getting ready";
+    $("#work-detail").innerHTML = esc(s.detail) || "&nbsp;";
+    const bar = $("#work-bar");
+    bar.classList.toggle("indeterminate", s.step === "Designing your folders" || !s.progress);
+    bar.firstElementChild.style.width = (s.progress * 100) + "%";
+    $("#cancel").hidden = s.phase === "applying";
+    pollTimer = setTimeout(poll, 600);
+  } else if (s.phase === "review") {
+    plan = await api("/api/plan"); edits = {}; selected = null; current = "Desktop"; query = ""; $("#search").value = "";
+    if (!itemsIn("Desktop").length && !foldersUnder("Desktop").length) current = plan.folders[1] || "Desktop";
+    show("review"); render();
+  } else if (s.phase === "done") {
+    showDone(s.result);
+  } else if (s.phase === "undone") {
+    const r = s.result.undone;
+    show("welcome"); await loadSetup();
+    alertSheet("Everything is back where it was", `${fmt(r.restored)} items were restored.`, r.problems);
+  } else if (s.phase === "error") {
+    show("welcome"); await loadSetup();
+    alertSheet("Something went wrong", s.error);
+    api("/api/reset", {});
+  } else {
+    show("welcome"); await loadSetup();
+  }
+}
+
+/* ---------- review ---------- */
+function all() { return plan.items.map(view); }
+function itemsIn(folder) { return all().filter((it) => it.folder === folder); }
+function allFolders() {
+  const set = new Set(plan.folders);
+  all().forEach((it) => set.add(it.folder));
+  // add every ancestor so the tree is complete
+  [...set].forEach((f) => { const p = f.split("/"); for (let i = 1; i < p.length; i++) set.add(p.slice(0, i).join("/")); });
+  return [...set];
+}
+function foldersUnder(folder) {
+  const depth = folder.split("/").length + 1;
+  return allFolders().filter((f) => f.startsWith(folder + "/") && f.split("/").length === depth).sort();
+}
+function deepCount(folder) { return all().filter((it) => it.include && !it.unchanged && (it.folder === folder || it.folder.startsWith(folder + "/"))).length; }
+
+function render() {
+  const items = all();
+  const changes = items.filter((i) => i.include && !i.unchanged).length;
+  const locked = items.filter((i) => i.include && i.locked).length;
+  $("#summary").textContent = `${fmt(changes)} changes · ${fmt(locked)} folders kept intact · nothing has moved yet`;
+  $("#organize").disabled = !changes;
+  renderSidebar(); renderItems(); renderInspector();
+}
+
+function renderSidebar() {
+  const tops = ["Desktop", ...new Set(allFolders().map((f) => f.split("/")[0]).filter((f) => f !== "Desktop"))];
+  const row = (f, depth) => {
+    const kids = foldersUnder(f), open = openFolders.has(f), name = f.split("/").pop();
+    const ico = f === "Desktop" ? I.desktop : I.smallFolder;
+    let h = `<div class="side-item ${f === current && !query ? "sel" : ""}" data-f="${esc(f)}" style="padding-left:${8 + depth * 14}px" role="treeitem" aria-expanded="${open}">
+      <span data-toggle="${esc(f)}">${I.chev.replace('class="chev"', `class="chev ${kids.length ? (open ? "open" : "") : "none"}"`)}</span>
+      <span class="ico">${ico}</span><span class="name">${esc(name)}</span><span class="count">${deepCount(f) || ""}</span></div>`;
+    if (open) kids.forEach((k) => h += row(k, depth + 1));
+    return h;
+  };
+  let html = `<div class="side-head">New Structure</div>` + tops.map((t) => row(t, 0)).join("");
+  const notes = plan.warnings.length + plan.skipped.length;
+  if (notes) html += `<div class="side-head">Info</div><div class="side-item" id="show-notes"><span class="chev none"></span><span class="ico">${I.info.replace("margin-top:1px", "")}</span><span class="name">Notes</span><span class="count">${fmt(notes)}</span></div>`;
+  const sb = $("#sidebar"); sb.innerHTML = html;
+  sb.querySelectorAll(".side-item[data-f]").forEach((el) => el.onclick = (e) => {
+    const f = el.dataset.f;
+    if (e.target.closest("[data-toggle]")) { openFolders.has(f) ? openFolders.delete(f) : openFolders.add(f); return renderSidebar(); }
+    navigate(f);
+  });
+  const n = $("#show-notes");
+  if (n) n.onclick = () => alertSheet("Notes", "Things worth knowing about this plan. Items under “Not touched” stay exactly where they are.",
+    [...plan.warnings, ...plan.skipped.slice(0, 400).map(([p, why]) => `Not touched: ${p} (${why})`)]);
+}
+
+function navigate(f) {
+  current = f; query = ""; $("#search").value = ""; selected = null; limit = 300;
+  const p = f.split("/"); for (let i = 1; i < p.length; i++) openFolders.add(p.slice(0, i).join("/"));
+  render();
+}
+
+function renderItems() {
+  const crumbs = $("#crumbs");
+  if (query) crumbs.innerHTML = `<span>Search results for “${esc(query)}”</span>`;
+  else {
+    const p = current.split("/");
+    crumbs.innerHTML = p.map((seg, i) => `<button data-f="${esc(p.slice(0, i + 1).join("/"))}">${esc(seg)}</button>`).join(`<span>›</span>`);
+    crumbs.querySelectorAll("button").forEach((b) => b.onclick = () => navigate(b.dataset.f));
+  }
+  let list, subs = [];
+  if (query) {
+    const q = query.toLowerCase();
+    list = all().filter((it) => it.name.toLowerCase().includes(q) || it.from.toLowerCase().includes(q));
+  } else {
+    list = itemsIn(current);
+    subs = foldersUnder(current);
+  }
+  list.sort((a, b) => (b.locked - a.locked) || a.name.localeCompare(b.name));
+  const box = $("#items");
+  let html = subs.map((f) => `<div class="item" data-folder="${esc(f)}"><div class="ico">${I.folder()}</div>
+      <div class="text"><div class="nm">${esc(f.split("/").pop())}</div><div class="sub">${fmt(deepCount(f))} ${deepCount(f) === 1 ? "item" : "items"}</div></div></div>`).join("");
+  html += list.slice(0, limit).map((it) => `<div class="item ${it.id === selected ? "sel" : ""} ${it.include ? "" : "off"}" data-id="${it.id}" role="option" aria-selected="${it.id === selected}">
+      <div class="ico">${itemIcon(it)}</div>
+      <div class="text"><div class="nm">${esc(it.name)}</div>
+        <div class="sub">${it.unchanged ? "Stays where it is" : !it.include ? "Won't be moved" : "from " + esc(it.from)}${query ? " → " + esc(it.folder) : ""}</div></div>
+      ${it.locked ? `<span class="tag">${I.lock} ${esc(kindLabel(it))} · ${files(it.n)}</span>` : ""}
+    </div>`).join("");
+  if (list.length > limit) html += `<button class="btn more" id="more">Show ${fmt(Math.min(300, list.length - limit))} More</button>`;
+  if (!subs.length && !list.length) html = `<div class="empty">${query ? "No matches" : "Nothing goes here"}</div>`;
+  box.innerHTML = html;
+  box.querySelectorAll("[data-folder]").forEach((el) => el.ondblclick = el.onclick = () => navigate(el.dataset.folder));
+  box.querySelectorAll("[data-id]").forEach((el) => el.onclick = () => { selected = el.dataset.id; renderItems(); renderInspector(); });
+  const m = $("#more"); if (m) m.onclick = () => { limit += 300; renderItems(); };
+}
+
+function renderInspector() {
+  const ins = $("#inspector");
+  const it = selected && all().find((i) => i.id === selected);
+  if (!it) { ins.innerHTML = `<div class="placeholder">Select an item to rename it, move it somewhere else, or leave it where it is.</div>`; return; }
+  const folders = [...new Set([...plan.folders, it.folder])].sort((a, b) => a === "Desktop" ? -1 : b === "Desktop" ? 1 : a.localeCompare(b));
+  ins.innerHTML = `
+    <div class="preview-ico">${itemIcon(it).replace(/width="22" height="22"/, 'width="60" height="60"')}</div>
+    <div class="ins-title">${esc(it.name)}</div>
+    <div class="ins-sub">${it.locked ? esc(kindLabel(it)) + " · " + files(it.n) : "File"}</div>
+    ${it.locked ? `<div class="callout">${I.lock.replace('width="11" height="11"', 'width="13" height="13" style="color:var(--accent);margin-top:1px"')}<span>This folder moves as one piece. Everything inside stays exactly as it is, so it keeps working.</span></div>` : ""}
+    ${it.note ? `<div class="callout warn">${I.warn}<span>${esc(it.note)}</span></div>` : ""}
+    <div class="field"><label for="f-name">Name</label><input type="text" id="f-name" value="${esc(it.name)}" ${it.include ? "" : "disabled"}></div>
+    <div class="field"><label for="f-folder">Where</label><select id="f-folder" ${it.include ? "" : "disabled"}>
+      ${folders.map((f) => `<option ${f === it.folder ? "selected" : ""} value="${esc(f)}">${esc(f.replaceAll("/", " › "))}</option>`).join("")}</select></div>
+    <div class="toggle-row"><span>Leave where it is</span><label class="switch"><input type="checkbox" id="f-keep" ${it.include ? "" : "checked"}><span></span></label></div>
+    <div class="field"><label>Currently</label><div class="path">~/${esc(it.from)}</div>
+      <button class="link" id="f-reveal" style="font-size:11px;margin-top:4px">Show in Finder</button></div>`;
+  const name = $("#f-name");
+  name.onchange = () => { if (name.value.trim()) edit(it.id, { name: name.value.trim() }); };
+  name.onkeydown = (e) => { if (e.key === "Enter") name.blur(); };
+  $("#f-folder").onchange = (e) => edit(it.id, { folder: e.target.value, desktop: e.target.value === "Desktop" });
+  $("#f-keep").onchange = (e) => edit(it.id, { include: !e.target.checked });
+  $("#f-reveal").onclick = () => api("/api/reveal", { path: it.from });
+}
+
+$("#search").oninput = (e) => { query = e.target.value.trim(); limit = 300; renderSidebar(); renderItems(); };
+$("#items").onkeydown = (e) => {
+  if (!["ArrowDown", "ArrowUp"].includes(e.key)) return;
+  e.preventDefault();
+  const ids = [...document.querySelectorAll("#items [data-id]")].map((el) => el.dataset.id);
+  const i = ids.indexOf(selected) + (e.key === "ArrowDown" ? 1 : -1);
+  if (ids[Math.max(0, Math.min(ids.length - 1, i))]) { selected = ids[Math.max(0, Math.min(ids.length - 1, i))]; renderItems(); renderInspector();
+    document.querySelector(`[data-id="${selected}"]`)?.scrollIntoView({ block: "nearest" }); }
+};
+$("#start-over").onclick = () => alertSheet("Start over?", "Your review changes will be lost. Nothing on your Mac has been moved.", [],
+  [{ label: "Cancel" }, { label: "Start Over", primary: true, action: async () => { await api("/api/reset", {}); poll(); } }]);
+$("#organize").onclick = () => {
+  const n = all().filter((i) => i.include && !i.unchanged).length;
+  alertSheet(`Organize ${fmt(n)} items?`, "Tidy saves a Time Machine snapshot first and keeps a record of every move, so you can undo at any time.", [],
+    [{ label: "Cancel" }, { label: "Organize", primary: true, action: async () => {
+      await api("/api/apply", { edits }); poll();
+    } }]);
+};
+
+/* ---------- done ---------- */
+function showDone(r) {
+  show("done");
+  $("#done-sub").textContent = `${fmt(r.moved)} items moved${r.removed ? `, ${fmt(r.removed)} empty ${r.removed === 1 ? "folder" : "folders"} removed` : ""}.` +
+    (r.snapshot ? " A Time Machine snapshot was saved first." : "");
+  const notes = [...r.notes.map((n) => ["info", n]), ...r.problems.map((p) => ["warn", p])];
+  $("#done-notes").innerHTML = notes.length ? `<div class="group">${notes.slice(0, 50).map(([t, n]) =>
+    `<div class="row">${I[t]}<div class="grow">${esc(n)}</div></div>`).join("")}</div>` : "";
+}
+const confirmUndo = () => alertSheet("Undo the last organize?", "Every file goes back to where it was before.", [],
+  [{ label: "Cancel" }, { label: "Undo", primary: true, action: async () => { await api("/api/undo", {}); poll(); } }]);
+$("#undo").onclick = confirmUndo;
+$("#finder").onclick = () => api("/api/reveal", {});
+$("#finish").onclick = async () => { await api("/api/reset", {}); poll(); };
+
+poll();
+</script>
+</body>
+</html>
